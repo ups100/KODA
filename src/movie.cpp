@@ -62,3 +62,22 @@ int Movie::clear_frames()
 {
 	m_frames.clear();
 }
+
+long long Movie::get_size()
+{
+	return (long long)m_frames.size() * m_frames[0].rows
+		*m_frames[0].cols * 3;
+}
+
+Movie &Movie::deep_copy(Movie &dest)
+{
+	dest.m_frames.clear();
+	dest.m_frames.reserve(m_frames.size());
+
+	/* We don't override the title here */
+
+	for (int i = 0; i < m_frames.size(); ++i)
+		dest.m_frames.push_back(m_frames[i].clone());
+
+	return dest;
+}
