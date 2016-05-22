@@ -13,7 +13,7 @@ public:
 
 	int from_dir(const std::string &dir);
 	int clear_frames();
-	inline cv::Mat operator[](size_t i);
+	inline cv::Mat& operator[](size_t i);
 	inline size_t get_n_frames();
 	inline const std::string &get_title();
 	/* override for result Movie */
@@ -26,7 +26,7 @@ private:
 	std::vector<cv::Mat> m_frames;
 };
 
-cv::Mat Movie::operator[](size_t i)
+cv::Mat& Movie::operator[](size_t i)
 {
 	return m_frames[i];
 }

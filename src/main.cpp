@@ -13,10 +13,19 @@
 /* Just for testing */
 int play_movie(Movie &mov)
 {
+	int x;
 	cv::Mat frame;
-
+	cv::Mat_<cv::Vec3b> ff = cv::Mat_<cv::Vec3b>(mov[0].rows, mov[0].cols);
+	cv::Mat_<cv::Vec3s> fx;
 	for (int i = 0; i < mov.get_n_frames(); ++i) {
-		cv::cvtColor(mov[i], frame, CV_YUV2BGR);
+		fx = mov[i];
+		for(int k =0 ; k < mov[i].rows;k++)
+			for(int l =0 ; l < mov[i].cols;l++) {
+				ff(k,l)[0] = (fx(k,l)[0]+255)/2;
+				for(int m = 1;m <  3; m++)
+					ff(k,l)[m] = (fx(k,l)[m]+255)/2-128; 
+			 }
+		cv::cvtColor(ff, frame, CV_YUV2BGR);
 
 		cv::imshow(mov.get_title(), frame);
 		cv::waitKey(1000/30);
