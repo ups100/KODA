@@ -37,6 +37,13 @@ void find_(cv::Mat_<cv::Vec3b>& last, cv::Mat_<cv::Vec3b>& curr, cv::Mat_<cv::Ve
 	unsigned long long int curr_err = -1;
 	Vector_ vec;
 
+	cv::Vec3b a(1, 2, 3);
+	cv::Vec3b b(0, 1, 2);
+	cv::Vec3b c;
+
+	c = a - b;
+
+	std::cout<<c<<std::endl;
 	for (int i = ((x - W) < 0 ? 0 : (x-W)  )* inter_ratio;
 	     i < (x + W) * inter_ratio && i+N*inter_ratio < curr.rows*inter_ratio;
 	     i++) {
@@ -93,6 +100,22 @@ cv::Mat_<cv::Vec3b> interpolate(cv::Mat_<cv::Vec3b>& img, int type)
 	return interpolated;
 }
 */
+cv::Vec3b interpolation_calc_vec(int x, int x1, cv::Vec3b &Q1, int x2, cv::Vec3b &Q2)
+{
+	cv::Vec3b result;
+	int diff1, diff2;
+
+	diff1 = x2 - x;
+	diff2 = x - x1;
+
+	result[0] = (diff1 * Q1[0] + diff2 * Q2[0])/I;
+	result[1] = (diff1 * Q1[1] + diff2 * Q2[1])/I;
+	result[2] = (diff1 * Q1[2] + diff2 * Q2[2])/I;
+
+	return result;
+}
+
+
 int interpolation_calc(int x, int x1, int Q1, int x2, int Q2) {
   return ((x2-x)*Q1+ (x-x1)*Q2)/I;
 }
@@ -132,9 +155,56 @@ cv::Mat_<cv::Vec3b> interpolate(cv::Mat_<cv::Vec3b> img, int type)
 	return interpolated;
 }
 
+cv::Mat_<cv::Vec3b> interpolate2(cv::Mat_<cv::Vec3b> img, int type)
+{
+	cv::Mat_<cv::Vec3b> interpolated = cv::Mat_<cv::Vec3b>((img.rows-1)*I+1, (img.cols-1)*I+1, cv::Vec3b(0,-1,-1));
+
+	for (int  i =0; i < img.rows; i++) {
+		interpolated(i*I,0) = img(i,0);
+		for (int j = (i -1)*I+1; j >= 0 && j < i*I;j++)
+			interpolated(j, 0) = interpolation_calc_vec(j, (i-1)*I, img(i-1,0), i*I, img(i,0));
+	}
+
+	for (int  i =0; i < img.cols; i++) {
+		interpolated(0,i*I) = img(0,i);
+		for (int j = (i -1)*I+1; j >= 0 && j < i*I;j++)
+			interpolated(0,j) = interpolation_calc_vec(j,(i-1)*I, img(0,i-1), i*I, img(0,i));
+	}
+
+	for (int  i = 1; i < img.rows; i++)
+		for (int j = 1; j < img.cols; j++) {
+			int curr_col = j*I;
+			int prev_col = j*I;
+			int curr_row = i * I;
+			cv::Vec3b curr = interpolated(curr_row, curr_col) = img(i, j);
+			int prev_row = (i - 1) * I;
+			cv::Vec3b prev = interpolated(prev_row, curr_col);
+
+			/* Up */
+			for (int y = curr_row - 1; y > prev_row; y--)
+				interpolated(y, curr_col) = interpolation_calc_vec(y, prev_row, prev, curr_row, curr);
+			
+			/* left */
+			prev_row = curr_row;
+			prev_col = (j - 1) * I;
+			prev = interpolated(prev_row, prev_col);
+			for (int x = curr_col - 1;  x > prev_col; x--) {
+				interpolated(curr_row, x) = interpolation_calc_vec(x, prev_col, prev, curr_col, curr);
+			}
+
+			/* rest */
+			for (int y = curr_row - 1; y > prev_row; y--)
+				for (int x = curr_col - 1; x > prev_col; x--)
+					interpolated(y,x) = interpolation_calc_vec(x, prev_col, interpolated(y, prev_col), curr_col, interpolated(y, curr_col));
+		}
+
+	return interpolated;
+}
+
 void modify(Movie &mov, int type = 0)
 {
 	cv::Mat_<cv::Vec3b> last;
+
 	last = cv::Mat_<cv::Vec3b>(mov[0].rows*I, mov[0].cols*I, cv::Vec3b(0,0,0));
 	
 	for (int frame = 0; frame < mov.get_n_frames(); ++frame) {
@@ -144,6 +214,7 @@ void modify(Movie &mov, int type = 0)
 		cv::Mat_<cv::Vec3s> displacement = cv::Mat_<cv::Vec3s>(orig_rows, orig_cols, cv::Vec3s(0,0,0));
 		std::cout<<"frame: "<< frame<< std::endl;
 		cv::Mat_<cv::Vec3b> img_inter = interpolate(img, type);
+		std::cout<<"Interpolated "<<std::endl;
 		for (int i = 0; i < orig_rows; i+=N)
 			for (int j = 0; j < orig_cols; j+=N) {
 				find_(last, img, displacement, i, j, I);
