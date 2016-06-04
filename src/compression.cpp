@@ -18,16 +18,29 @@ struct Vector_ {
 	int divider;
 };
 
-unsigned long long int calculate_error (cv::Mat_<cv::Vec3b>& curr, int c, int d, cv::Mat_<cv::Vec3b>& previous_interpolated, int x, int y, int inter_ratio) {
+unsigned long long int calculate_error(cv::Mat_<cv::Vec3b>& curr, int c, int d,
+				       cv::Mat_<cv::Vec3b>& previous_interpolated,
+				       int x, int y, int inter_ratio)
+{
 	unsigned long long int err = 0;
-	for (int i = c,k = x; i < c + N && i < curr.rows; i++, k += inter_ratio)
-		for (int j = d,l = y; j < d + N && j < curr.cols; j++, l += inter_ratio) {
+	uchar *curr_vec;
+	uchar *prev_vec;
+
+	for (int i = c, k = x;
+	     i < c + N && i < curr.rows;
+	     i++, k += inter_ratio)
+		for (int j = d,l = y;
+		     j < d + N && j < curr.cols;
+		     j++, l += inter_ratio) {
 			int q;
-			q = std::abs(curr(i,j)[0] - ((int)previous_interpolated(k,l)[0]));
+			curr_vec = curr(i,j).val;
+			prev_vec = previous_interpolated(k,l).val;
+
+			q = curr_vec[0] - (int)prev_vec[0];
 			err += q*q;
-			q = std::abs(curr(i,j)[1] - ((int)previous_interpolated(k,l)[1]));
+			q = curr_vec[1] - (int)prev_vec[1];
 			err += q*q;
-			q = std::abs(curr(i,j)[2] - ((int)previous_interpolated(k,l)[2]));
+			q = curr_vec[2] - (int)prev_vec[2];
 			err += q*q;
 		}
 	return err;
