@@ -83,6 +83,8 @@ cv::Vec3b interpolation_calc_vec(int x, int x1, cv::Vec3b &Q1, int x2, cv::Vec3b
 cv::Mat_<cv::Vec3b> interpolate2(cv::Mat_<cv::Vec3b> img, int type)
 {
 	cv::Mat_<cv::Vec3b> interpolated = cv::Mat_<cv::Vec3b>((img.rows-1)*I+1, (img.cols-1)*I+1, cv::Vec3b(0,-1,-1));
+	cv::Vec3b curr;
+	cv::Vec3b prev;
 
 	for (int i = 0; i < img.rows; i++) {
 		interpolated(i*I,0) = img(i,0);
@@ -100,10 +102,11 @@ cv::Mat_<cv::Vec3b> interpolate2(cv::Mat_<cv::Vec3b> img, int type)
 		for (int j = 1; j < img.cols; j++) {
 			int curr_col = j * I;
 			int curr_row = i * I;
-			cv::Vec3b curr = interpolated(curr_row, curr_col) = img(i, j);
 			int prev_col = curr_col;
 			int prev_row = (i - 1) * I;
-			cv::Vec3b prev = interpolated(prev_row, prev_col);
+
+			curr = interpolated(curr_row, curr_col) = img(i, j);
+			prev = interpolated(prev_row, prev_col);
 
 			/* Up */
 			for (int y = curr_row - 1; y > prev_row; y--)
