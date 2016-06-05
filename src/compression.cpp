@@ -75,9 +75,12 @@ void find_(cv::Mat_<cv::Vec3b> &last, cv::Mat_<cv::Vec3b> &curr, cv::Mat_<cv::Ve
 //	std::cout << "vector: "<< vec.x- x*I <<" " << vec.y-y*I<< std::endl;
 	for (int i = x, k = vec.x; i < x + N && i < curr.rows; i++, k += inter_ratio)
 		for (int j = y, l = vec.y; j < y + N && j < curr.cols; j++, l += inter_ratio) {
-			displacement(i,j)[0] = ((int) last(k,l)[0]) - curr(i,j)[0];
-			displacement(i,j)[1] = ((int) last(k,l)[1]) - curr(i,j)[1];
-			displacement(i,j)[2] = ((int) last(k,l)[2]) - curr(i,j)[2];
+			disp = displacement(i, j).val;
+			last_vec = last(k, l).val;
+			curr_vec = curr(i, j).val;
+			disp[0] = (int)last_vec[0] - curr_vec[0];
+			disp[1] = (int)last_vec[1] - curr_vec[1];
+			disp[1] = (int)last_vec[1] - curr_vec[1];
 		}
 }
 
