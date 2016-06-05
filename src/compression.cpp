@@ -89,9 +89,9 @@ cv::Vec3b interpolation_calc_vec(int x, int x1, cv::Vec3b &Q1, int x2, cv::Vec3b
 	diff1 = x2 - x;
 	diff2 = x - x1;
 
-	result[0] = (diff1 * Q1[0] + diff2 * Q2[0])/I;
-	result[1] = (diff1 * Q1[1] + diff2 * Q2[1])/I;
-	result[2] = (diff1 * Q1[2] + diff2 * Q2[2])/I;
+	result.val[0] = (diff1 * Q1.val[0] + diff2 * Q2.val[0])/I;
+	result.val[1] = (diff1 * Q1.val[1] + diff2 * Q2.val[1])/I;
+	result.val[2] = (diff1 * Q1.val[2] + diff2 * Q2.val[2])/I;
 
 	return result;
 }
