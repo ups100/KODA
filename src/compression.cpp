@@ -99,7 +99,7 @@ cv::Vec3b interpolation_calc_vec(int x, int x1, cv::Vec3b &Q1, int x2, cv::Vec3b
 	return result;
 }
 
-cv::Mat_<cv::Vec3b> interpolate2(cv::Mat_<cv::Vec3b> img, int type)
+cv::Mat_<cv::Vec3b> interpolate2(cv::Mat_<cv::Vec3b> &img)
 {
 	cv::Mat_<cv::Vec3b> interpolated = cv::Mat_<cv::Vec3b>((img.rows-1)*I+1, (img.cols-1)*I+1, cv::Vec3b(0,-1,-1));
 	cv::Vec3b curr;
@@ -149,10 +149,158 @@ cv::Mat_<cv::Vec3b> interpolate2(cv::Mat_<cv::Vec3b> img, int type)
 	return interpolated;
 }
 
+cv::Vec3s& operator+(cv::Vec3s& a, short b)
+{
+	a.val[0] += b;
+	a.val[1] += b;
+	a.val[2] += b;
+
+	return a;
+}
+
+static inline cv::Vec3b interpolate_mean(cv::Vec3b &a, cv::Vec3b &b)
+{
+	cv::Vec3s result = a;
+
+	result += b;
+
+	return cv::Vec3b((result + 1)/2);
+}
+
+cv::Mat_<cv::Vec3b> interpolate264(cv::Mat_<cv::Vec3b> &img)
+{
+	cv::Mat_<cv::Vec3b> interpolated = cv::Mat_<cv::Vec3b>((img.rows-1)*I+1, (img.cols-1)*I+1, cv::Vec3b(0,-1,-1));
+	int x;
+	int y;
+	cv::Vec3b tmp;
+	cv::Vec3s val;
+	cv::Vec3b tmp_curr;
+	cv::Vec3s tmp_val;
+
+	assert(I == 4);
+
+	for (int i = 0, y = 0; i < img.rows; y += 4, ++i) {
+		tmp = img(i, 0);
+		for (int j = 0, x = 0; j < img.cols; x += 2)
+			switch (x % 4) {
+			case 0:
+			{
+				interpolated(y, x) = tmp;
+				if (x != 0)
+					interpolated(y, x - 1) = interpolate_mean(interpolated(y, x - 2), tmp);
+				++j;
+				break;
+			}
+			case 2:
+			{
+				/* previous and next are allways valid */
+				int sum = 40;
+				/* previous orig */
+				val = tmp;
+				/* next orig */
+				tmp = img(i, j);
+				val += tmp;
+				val *= 20;
+
+				/* Zero the value */
+				tmp_val *= 0;
+				/* is there sth on a right side */
+				if (j - 2 >= 0) {
+					tmp_val += img(i, j - 2);
+					sum -= 5;
+					if (j - 3 >= 0) {
+						val += img(i, j - 3);
+						sum += 1;
+					}
+
+				}
+				/* is there sth on a left side */
+				if (j + 1 < img.cols) {
+					tmp_val += img(i, j + 1);
+					sum -= 5;
+					if (j + 2 < img.cols) {
+						val += img(i, j + 2);
+						sum += 1;
+					}
+							
+				}
+
+				val -= tmp_val * 5;
+				tmp_curr = val = (val + sum/2)/sum;
+				interpolated(y, x) = val;
+				interpolated(y, x - 1) = interpolate_mean(interpolated(y, x - 2), tmp_curr);
+				break;
+			}
+			default:
+				break;
+			}
+	}
+
+	for (y = 2; y < interpolated.rows; y += 4) {
+		for (x = 0; x < interpolated.cols; x += 2) {
+			/* previous and next are allways valid */
+			int sum = 40;
+			/* previous orig */
+			val = interpolated(y - 2, x);
+			/* next orig */
+			val += interpolated(y + 2, x);
+			val *= 20;
+
+			/* Zero the value */
+			tmp_val *= 0;
+			/* is there sth up */
+			if (y - 6 >= 0) {
+				tmp_val += interpolated(y - 6, x);
+				sum -= 5;
+				if (y - 10 >= 0) {
+					val += interpolated(y - 10, x);
+					sum += 1;
+				}
+
+			}
+			/* is there sth down */
+			if (y + 6 < interpolated.rows) {
+				tmp_val += interpolated(y + 6, x);
+				sum -= 5;
+				if (y + 10 < interpolated.rows) {
+					val += img(y + 10, x);
+					sum += 1;
+				}
+			}
+
+			val -= tmp_val * 5;
+			val = (val + sum/2)/sum;
+			tmp_curr = interpolated(y, x) = val;
+			/* prev column mean */
+			if (x != 0)
+				interpolated(y, x - 1) = interpolate_mean(interpolated(y, x - 2) , tmp_curr);
+
+			/* up */
+			interpolated(y - 1, x) = interpolate_mean(interpolated(y - 2, x) , tmp_curr);
+			/* down */
+			interpolated(y + 1, x) = interpolate_mean(interpolated(y + 2, x) , tmp_curr);
+
+			if (x % 4 == 0) {
+				if (x != interpolated.cols - 1) {
+					interpolated(y - 1, x + 1) = interpolate_mean(interpolated(y - 2, x + 2) , tmp_curr);
+					interpolated(y + 1, x + 1) = interpolate_mean(interpolated(y + 2, x + 2) , tmp_curr);
+				}
+
+				if (x != 0) {
+					interpolated(y - 1, x - 1) = interpolate_mean(interpolated(y - 2, x + 2) , tmp_curr);
+					interpolated(y + 1, x - 1) = interpolate_mean(interpolated(y + 2, x + 2) , tmp_curr);
+				}				
+			}
+
+		}
+	}
+
+	return interpolated;
+}
+
 void modify(Movie &mov, int type = 0)
 {
 	cv::Mat_<cv::Vec3b> last;
-	time_t time;
 
 	last = cv::Mat_<cv::Vec3b>(mov[0].rows*I, mov[0].cols*I, cv::Vec3b(0,0,0));
 	
@@ -162,10 +310,15 @@ void modify(Movie &mov, int type = 0)
 		int orig_cols = img.cols;
 		cv::Mat_<cv::Vec3s> displacement = cv::Mat_<cv::Vec3s>(orig_rows, orig_cols, cv::Vec3s(0,0,0));
 		std::cout<<"frame: "<< frame<< std::endl;
-		cv::Mat_<cv::Vec3b> img_inter = interpolate2(img, type);
-		std::cout<<"Interpolated "<<std::endl;
-		for (int i = 0; i < orig_rows; i+=N)
-			for (int j = 0; j < orig_cols; j+=N)
+		cv::Mat_<cv::Vec3b> img_inter;
+
+		if (type)
+			img_inter = interpolate2(img);
+		else
+			img_inter = interpolate264(img);
+
+		for (int i = 0; i < orig_rows; i += N)
+			for (int j = 0; j < orig_cols; j += N)
 				find_(last, img, displacement, i, j, I);
 
 		mov[frame] = displacement;
