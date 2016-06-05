@@ -46,20 +46,23 @@ unsigned long long int calculate_error(cv::Mat_<cv::Vec3b>& curr, int c, int d,
 	return err;
 }
 
-void find_(cv::Mat_<cv::Vec3b>& last, cv::Mat_<cv::Vec3b>& curr, cv::Mat_<cv::Vec3s>& displacement, int x, int y, int inter_ratio = 1) {
+void find_(cv::Mat_<cv::Vec3b> &last, cv::Mat_<cv::Vec3b> &curr, cv::Mat_<cv::Vec3s> &displacement, int x, int y, int inter_ratio = 1)
+{
 	unsigned long long int curr_err = -1;
+	uchar *curr_vec;
+	uchar *last_vec;
+	short *disp;
 	Vector_ vec;
 
-	for (int i = ((x - W) < 0 ? 0 : (x-W)  )* inter_ratio;
+	int start_i = ((x - W) < 0 ? 0 : (x - W)) * inter_ratio;
+	int start_j = ((y - W) < 0 ? 0 : (y - W)) * inter_ratio;
+
+	for (int i = start_i;
 	     i < (x + W) * inter_ratio && i+N*inter_ratio < curr.rows*inter_ratio;
 	     i++) {
-		if (i < 0)
-			continue;
-		for (int j = ((y - W) <0 ?0 :(y-W)) * inter_ratio;
+		for (int j = start_j;
 		     j < (y + W) * inter_ratio && j+N*inter_ratio < curr.cols*inter_ratio;
 		     j++) {
-			if (j < 0)
-				continue;
 			unsigned long long int err = calculate_error(curr, x, y, last,i, j, inter_ratio);
 			if (err  < curr_err) {
 				curr_err = err;
