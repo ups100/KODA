@@ -172,27 +172,30 @@ cv::Mat_<cv::Vec3b> interpolate264(cv::Mat_<cv::Vec3b> &img)
 	cv::Mat_<cv::Vec3b> interpolated = cv::Mat_<cv::Vec3b>((img.rows-1)*I+1, (img.cols-1)*I+1, cv::Vec3b(0,-1,-1));
 	int x;
 	int y;
+	int step;
+	int small_step;
 	cv::Vec3b tmp;
 	cv::Vec3s val;
 	cv::Vec3b tmp_curr;
 	cv::Vec3s tmp_val;
 
-	assert(I == 4);
+	assert(I <= 4);
 
-	for (int i = 0, y = 0; i < img.rows; y += 4, ++i) {
+	if (I == 1)
+		return img.clone();
+
+	step = I;
+	small_step = I/2;
+
+	for (int i = 0, y = 0; i < img.rows; y += step, ++i) {
 		tmp = img(i, 0);
-		for (int j = 0, x = 0; j < img.cols; x += 2)
-			switch (x % 4) {
-			case 0:
-			{
+		for (int j = 0, x = 0; j < img.cols; x += small_step)
+			if (x % step == 0) {
 				interpolated(y, x) = tmp;
-				if (x != 0)
+				if (x != 0 && small_step != 1)
 					interpolated(y, x - 1) = interpolate_mean(interpolated(y, x - 2), tmp);
 				++j;
-				break;
-			}
-			case 2:
-			{
+			} else if (x % step == small_step) {
 				/* previous and next are allways valid */
 				int sum = 40;
 				/* previous orig */
@@ -204,8 +207,8 @@ cv::Mat_<cv::Vec3b> interpolate264(cv::Mat_<cv::Vec3b> &img)
 
 				/* Zero the value */
 				tmp_val *= 0;
-				/* is there sth on a right side */
-				if (j - 2 >= 0) {
+				/* is there sth on a left side */
+				if (j - 2  >= 0) {
 					tmp_val += img(i, j - 2);
 					sum -= 5;
 					if (j - 3 >= 0) {
@@ -228,42 +231,39 @@ cv::Mat_<cv::Vec3b> interpolate264(cv::Mat_<cv::Vec3b> &img)
 				val -= tmp_val * 5;
 				tmp_curr = val = (val + sum/2)/sum;
 				interpolated(y, x) = val;
-				interpolated(y, x - 1) = interpolate_mean(interpolated(y, x - 2), tmp_curr);
-				break;
-			}
-			default:
-				break;
+				if (small_step != 1)
+					interpolated(y, x - 1) = interpolate_mean(interpolated(y, x - 2), tmp_curr);
 			}
 	}
 
-	for (y = 2; y < interpolated.rows; y += 4) {
-		for (x = 0; x < interpolated.cols; x += 2) {
+	for (y = small_step; y < interpolated.rows; y += step) {
+		for (x = 0; x < interpolated.cols; x += small_step) {
 			/* previous and next are allways valid */
 			int sum = 40;
 			/* previous orig */
-			val = interpolated(y - 2, x);
+			val = interpolated(y - small_step, x);
 			/* next orig */
-			val += interpolated(y + 2, x);
+			val += interpolated(y + small_step, x);
 			val *= 20;
 
 			/* Zero the value */
 			tmp_val *= 0;
 			/* is there sth up */
-			if (y - 6 >= 0) {
-				tmp_val += interpolated(y - 6, x);
+			if (y - step - small_step >= 0) {
+				tmp_val += interpolated(y - step - small_step, x);
 				sum -= 5;
-				if (y - 10 >= 0) {
-					val += interpolated(y - 10, x);
+				if (y - 2*step - small_step >= 0) {
+					val += interpolated(2*step - small_step, x);
 					sum += 1;
 				}
 
 			}
 			/* is there sth down */
-			if (y + 6 < interpolated.rows) {
-				tmp_val += interpolated(y + 6, x);
+			if (y + step + small_step < interpolated.rows) {
+				tmp_val += interpolated(y + step + small_step, x);
 				sum -= 5;
-				if (y + 10 < interpolated.rows) {
-					val += img(y + 10, x);
+				if (y + 2*step + small_step < interpolated.rows) {
+					val += img(y + 2*step + small_step, x);
 					sum += 1;
 				}
 			}
@@ -271,6 +271,11 @@ cv::Mat_<cv::Vec3b> interpolate264(cv::Mat_<cv::Vec3b> &img)
 			val -= tmp_val * 5;
 			val = (val + sum/2)/sum;
 			tmp_curr = interpolated(y, x) = val;
+
+			/* When I == 1 we don't calculate the means */
+			if (small_step == 1)
+				continue;
+
 			/* prev column mean */
 			if (x != 0)
 				interpolated(y, x - 1) = interpolate_mean(interpolated(y, x - 2) , tmp_curr);
@@ -291,7 +296,6 @@ cv::Mat_<cv::Vec3b> interpolate264(cv::Mat_<cv::Vec3b> &img)
 					interpolated(y + 1, x - 1) = interpolate_mean(interpolated(y + 2, x + 2) , tmp_curr);
 				}				
 			}
-
 		}
 	}
 
