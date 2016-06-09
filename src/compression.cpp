@@ -312,7 +312,7 @@ void modify(Movie &mov, int type = 0)
 		std::cout<<"frame: "<< frame<< std::endl;
 		cv::Mat_<cv::Vec3b> img_inter;
 
-		if (type)
+		if (!type)
 			img_inter = interpolate2(img);
 		else
 			img_inter = interpolate264(img);
