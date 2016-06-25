@@ -80,7 +80,7 @@ void find_(cv::Mat_<cv::Vec3b> &last, cv::Mat_<cv::Vec3b> &curr, cv::Mat_<cv::Ve
 			curr_vec = curr(i, j).val;
 			disp[0] = (int)last_vec[0] - curr_vec[0];
 			disp[1] = (int)last_vec[1] - curr_vec[1];
-			disp[1] = (int)last_vec[1] - curr_vec[1];
+			disp[2] = (int)last_vec[2] - curr_vec[2];
 		}
 }
 
@@ -253,7 +253,7 @@ cv::Mat_<cv::Vec3b> interpolate264(cv::Mat_<cv::Vec3b> &img)
 				tmp_val += interpolated(y - step - small_step, x);
 				sum -= 5;
 				if (y - 2*step - small_step >= 0) {
-					val += interpolated(2*step - small_step, x);
+					val += interpolated(y - 2*step - small_step, x);
 					sum += 1;
 				}
 
@@ -263,7 +263,7 @@ cv::Mat_<cv::Vec3b> interpolate264(cv::Mat_<cv::Vec3b> &img)
 				tmp_val += interpolated(y + step + small_step, x);
 				sum -= 5;
 				if (y + 2*step + small_step < interpolated.rows) {
-					val += img(y + 2*step + small_step, x);
+					val += interpolated(y + 2*step + small_step, x);
 					sum += 1;
 				}
 			}
@@ -292,9 +292,10 @@ cv::Mat_<cv::Vec3b> interpolate264(cv::Mat_<cv::Vec3b> &img)
 				}
 
 				if (x != 0) {
-					interpolated(y - 1, x - 1) = interpolate_mean(interpolated(y - 2, x + 2) , tmp_curr);
-					interpolated(y + 1, x - 1) = interpolate_mean(interpolated(y + 2, x + 2) , tmp_curr);
-				}				
+					interpolated(y - 1, x - 1) = interpolate_mean(interpolated(y - 2, x - 2) , tmp_curr);
+					interpolated(y + 1, x - 1) = interpolate_mean(interpolated(y + 2, x - 2) , tmp_curr);
+				}
+
 			}
 		}
 	}
